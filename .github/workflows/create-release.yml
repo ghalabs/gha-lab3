@@ -1,0 +1,37 @@
+name: Create Release Lab
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  detect-event:
+    runs-on: ubuntu-latest
+    outputs:
+      version_tag: ${{ steps.generate_id.outputs.new_tag }}
+    steps:
+      - name: Generate unique ID
+        id: generate_id
+        run: |
+          TAG="v$(date +'%Y%m%d-%H%M%S')"
+          echo "new_tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Generated Tag: $TAG"
+
+  create-release:
+    needs: [detect-event]
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to create tags and releases
+     
+    steps:
+      - name: Checkout Repository Code
+        uses: actions/checkout@v4
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.detect-event.outputs.version_tag }}
+          name: Release ${{ needs.detect-event.outputs.version_tag }}
+          token: ${{ secrets.GITHUB_TOKEN }}
